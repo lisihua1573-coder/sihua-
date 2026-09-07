@@ -3,9 +3,27 @@
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 1060;
 
-// GitHub Pages / 手机端显示设置
-// 保持内部坐标仍为 800 × 1060，仅通过 CSS 等比缩放，因此不会改变原有构图参数。
-const MAX_PIXEL_DENSITY = 2;          // 限制移动端像素密度，兼顾清晰度与 WEBGL 性能
+// ================= GitHub Pages / 手机端显示设置 =================
+// 保持内部坐标仍为 800 × 1060，仅通过页面 CSS 等比缩放，不改变原有构图参数。
+const MAX_PIXEL_DENSITY = 2;          // 移动端最大像素密度，兼顾清晰度与 WEBGL 性能
+
+// ================= 右下角滑杆交互引导参数设置 =================
+const GUIDE_SLIDER_ENABLED = true;          // 是否显示初始滑杆引导
+const GUIDE_SLIDER_WIDTH = 140;             // 滑杆总宽度 (px)
+const GUIDE_SLIDER_TRACK_HEIGHT = 4;        // 滑杆轨道粗细 (px)
+const GUIDE_SLIDER_KNOB_SIZE = 18;          // 滑块圆点直径 (px)
+const GUIDE_SLIDER_RIGHT_MARGIN = 50;       // 滑杆距离画布右侧 (px)
+const GUIDE_SLIDER_BOTTOM_MARGIN = 50;      // 滑杆距离画布底部 (px)
+const GUIDE_SLIDER_TRAVEL_PADDING = 12;     // 滑块运动范围两端留白 (px)
+const GUIDE_SLIDER_COLOR_HEX = '#ffffff';   // 滑杆与滑块颜色
+const GUIDE_SLIDER_TRACK_OPACITY = 0.28;    // 轨道不透明度 (0.0~1.0)
+const GUIDE_SLIDER_KNOB_OPACITY = 0.90;     // 滑块不透明度 (0.0~1.0)
+const GUIDE_SLIDER_HALO_SCALE = 1.75;       // 滑块外围呼吸光尺寸倍率
+const GUIDE_SLIDER_ANIMATION_SPEED = 0.045; // 滑块左右往返速度
+const GUIDE_SLIDER_FADE_SPEED = 0.12;       // 首次拖动后的渐隐速度
+
+let guideSliderVisibility = 1;              // 滑杆当前显示强度
+let hasUserDragged = false;                 // 是否已经完成过一次拖动
 
 // ----- 背景色与渐变参数设置 -----
 const BG_COLOR_IDLE = '#000000';       // 静止初始背景色 (HEX)
@@ -202,7 +220,13 @@ function setup() {
   pixelDensity(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_DENSITY));
 
   const canvasRenderer = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT, WEBGL);
-  canvasRenderer.parent('app');
+
+  // GitHub Pages 中挂载到 #app；在 p5.js 编辑器中也仍可直接运行。
+  const appContainer = document.getElementById('app');
+  if (appContainer) {
+    canvasRenderer.parent(appContainer);
+  }
+
   canvasRenderer.elt.setAttribute('role', 'img');
   canvasRenderer.elt.setAttribute('aria-label', '思花 AI 与编程艺术交互作品');
 
@@ -253,6 +277,17 @@ function setup() {
 
 function draw() {
   let isMoving = isDragging && (mouseX !== pmouseX || mouseY !== pmouseY);
+
+  // 页面初始保持显示；第一次实际拖动后平滑消失。
+  let guideTargetVisibility = hasUserDragged ? 0 : 1;
+  guideSliderVisibility = lerp(
+    guideSliderVisibility,
+    guideTargetVisibility,
+    GUIDE_SLIDER_FADE_SPEED
+  );
+  if (guideSliderVisibility < 0.001) {
+    guideSliderVisibility = 0;
+  }
 
   if (!isDragging) {
     currentZoomScale = lerp(currentZoomScale, BASE_ZOOM_SCALE, ZOOM_OUT_SPRING_SPEED);
@@ -591,6 +626,74 @@ function draw() {
 
     pop();
   }
+
+  // ---------------- 5. 最上层：右下角滑杆交互引导 ----------------
+  renderSliderGuide();
+}
+
+/**
+ * 在画布右下角绘制自动左右往返的滑杆，引导用户进行拖动。
+ * 使用画布坐标绘制，不跟随作品的三维旋转与缩放。
+ */
+function renderSliderGuide() {
+  if (!GUIDE_SLIDER_ENABLED || guideSliderVisibility <= 0.001) return;
+
+  let rightEdge = width / 2 - GUIDE_SLIDER_RIGHT_MARGIN;
+  let leftEdge = rightEdge - GUIDE_SLIDER_WIDTH;
+  let centerGuideX = (leftEdge + rightEdge) / 2;
+  let centerGuideY = height / 2 - GUIDE_SLIDER_BOTTOM_MARGIN;
+
+  let minKnobX = leftEdge + GUIDE_SLIDER_TRAVEL_PADDING + GUIDE_SLIDER_KNOB_SIZE / 2;
+  let maxKnobX = rightEdge - GUIDE_SLIDER_TRAVEL_PADDING - GUIDE_SLIDER_KNOB_SIZE / 2;
+
+  // 余弦缓动让滑块在两端自然减速，再反向移动。
+  let travelProgress = 0.5 - 0.5 * cos(frameCount * GUIDE_SLIDER_ANIMATION_SPEED);
+  let knobX = lerp(minKnobX, maxKnobX, travelProgress);
+  let pulse = map(
+    sin(frameCount * GUIDE_SLIDER_ANIMATION_SPEED * 2),
+    -1,
+    1,
+    0.72,
+    1.0
+  );
+
+  let guideColor = color(GUIDE_SLIDER_COLOR_HEX);
+  let r = red(guideColor);
+  let g = green(guideColor);
+  let b = blue(guideColor);
+
+  push();
+  translate(0, 0, 500);
+  rectMode(CENTER);
+  noStroke();
+
+  // 轨道
+  fill(r, g, b, 255 * GUIDE_SLIDER_TRACK_OPACITY * guideSliderVisibility);
+  rect(
+    centerGuideX,
+    centerGuideY,
+    GUIDE_SLIDER_WIDTH,
+    GUIDE_SLIDER_TRACK_HEIGHT,
+    GUIDE_SLIDER_TRACK_HEIGHT / 2
+  );
+
+  // 滑块外围呼吸光
+  fill(r, g, b, 34 * pulse * guideSliderVisibility);
+  circle(
+    knobX,
+    centerGuideY,
+    GUIDE_SLIDER_KNOB_SIZE * GUIDE_SLIDER_HALO_SCALE
+  );
+
+  // 滑块
+  fill(
+    r,
+    g,
+    b,
+    255 * GUIDE_SLIDER_KNOB_OPACITY * pulse * guideSliderVisibility
+  );
+  circle(knobX, centerGuideY, GUIDE_SLIDER_KNOB_SIZE);
+  pop();
 }
 
 /**
@@ -899,6 +1002,11 @@ function mouseDragged() {
 
   let dx = mouseX - pmouseX;
   let dy = mouseY - pmouseY;
+
+  // 只有发生真实位移才算完成引导，单纯轻触不会让滑杆消失。
+  if (Math.abs(dx) + Math.abs(dy) > 0.5) {
+    hasUserDragged = true;
+  }
 
   velX += -dy * ROTATE_SENSITIVITY;
   velY += dx * ROTATE_SENSITIVITY;
