@@ -96,7 +96,7 @@ let layerGrowSpeeds = [];             // 每层圆各自独立的生长速度
 let layerGrowProgress = [];           // 每层圆各自实时的生长进度 (0.0 完全未生 ~ 1.0 闭合完整圆)
 
 // ================= 圆心月相双圆参数设置 =================
-const CENTER_CIRCLES_RADIUS = 20;     // 圆心两圆的共同半径尺寸 (px)
+const CENTER_CIRCLES_RADIUS = 10;     // 圆心两圆的共同半径尺寸 (px)
 
 const CENTER_BASE_CIRCLE_FILL = '#ffffff';     // 底圆亮部填充颜色 (HEX)
 const CENTER_BASE_CIRCLE_STROKE = '#63E6FF';   // 底圆轮廓描边颜色 (HEX)
