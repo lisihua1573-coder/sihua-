@@ -7,24 +7,6 @@ const CANVAS_HEIGHT = 1060;
 // 保持内部坐标仍为 800 × 1060，仅通过页面 CSS 等比缩放，不改变原有构图参数。
 const MAX_PIXEL_DENSITY = 2;          // 移动端最大像素密度，兼顾清晰度与 WEBGL 性能
 
-// ================= 右下角滑杆交互引导参数设置 =================
-const GUIDE_SLIDER_ENABLED = true;          // 是否显示初始滑杆引导
-const GUIDE_SLIDER_WIDTH = 140;             // 滑杆总宽度 (px)
-const GUIDE_SLIDER_TRACK_HEIGHT = 4;        // 滑杆轨道粗细 (px)
-const GUIDE_SLIDER_KNOB_SIZE = 18;          // 滑块圆点直径 (px)
-const GUIDE_SLIDER_RIGHT_MARGIN = 50;       // 滑杆距离画布右侧 (px)
-const GUIDE_SLIDER_BOTTOM_MARGIN = 50;      // 滑杆距离画布底部 (px)
-const GUIDE_SLIDER_TRAVEL_PADDING = 12;     // 滑块运动范围两端留白 (px)
-const GUIDE_SLIDER_COLOR_HEX = '#ffffff';   // 滑杆与滑块颜色
-const GUIDE_SLIDER_TRACK_OPACITY = 0.28;    // 轨道不透明度 (0.0~1.0)
-const GUIDE_SLIDER_KNOB_OPACITY = 0.90;     // 滑块不透明度 (0.0~1.0)
-const GUIDE_SLIDER_HALO_SCALE = 1.75;       // 滑块外围呼吸光尺寸倍率
-const GUIDE_SLIDER_ANIMATION_SPEED = 0.045; // 滑块左右往返速度
-const GUIDE_SLIDER_FADE_SPEED = 0.12;       // 首次拖动后的渐隐速度
-
-let guideSliderVisibility = 1;              // 滑杆当前显示强度
-let hasUserDragged = false;                 // 是否已经完成过一次拖动
-
 // ----- 背景色与渐变参数设置 -----
 const BG_COLOR_IDLE = '#000000';       // 静止初始背景色 (HEX)
 const BG_GRAD_COLOR_A = '#000000';     // 拖拽渐变端点色 A (HEX)
@@ -34,8 +16,34 @@ const BG_ANGLE_SENSITIVITY = 1.8;      // 拖拽位移驱动渐变旋转的灵�
 
 let currentBgAngle = 0;                // 实时平滑渐变角度 (弧度)
 
+// ================= 右下角游戏操作杆参数设置 =================
+const JOYSTICK_MARGIN_RIGHT = 60;      // 距离右边缘间距 (px)
+const JOYSTICK_MARGIN_BOTTOM = 60;     // 距离下边缘间距 (px)
+const JOYSTICK_BASE_RADIUS = 36;       // 外层大圆底盘半径 (px)
+const JOYSTICK_KNOB_RADIUS = 14;       // 内层小圆摇杆半径 (px)
+
+// 样式与颜色
+const JOYSTICK_BASE_STROKE = '#ffffff';// 外圆描边颜色 (HEX)
+const JOYSTICK_BASE_STROKE_WEIGHT = 1.5; // 外圆描边粗细 (px)
+const JOYSTICK_BASE_FILL = '#000000';  // 外圆底盘填充颜色 (HEX)
+const JOYSTICK_BASE_FILL_ALPHA = 0.20; // 外圆底盘填充不透明度 (0.0~1.0)
+
+const JOYSTICK_KNOB_STROKE = '#ffffff';// 内圆描边颜色 (HEX)
+const JOYSTICK_KNOB_STROKE_WEIGHT = 1.5; // 内圆描边粗细 (px)
+const JOYSTICK_KNOB_FILL = '#ffffff';  // 内圆摇杆填充颜色 (HEX)
+const JOYSTICK_KNOB_FILL_ALPHA = 0.40; // 内圆填充不透明度 (0.0~1.0)
+
+const JOYSTICK_BASE_OPACITY = 0.70;    // 静止常驻不透明度 (0.0~1.0)
+const JOYSTICK_FADE_OUT_SPEED = 0.18;  // 拖动开始时渐隐速度 (0.01~1.0)
+const JOYSTICK_FADE_IN_SPEED = 0.10;   // 松手释放时恢复显现速度 (0.01~1.0)
+
+// 摇杆运行时状态变量
+let isJoystickDragging = false;        // 是否正在拖动摇杆小圆
+let joystickKnobOffsetX = 0;          // 内层小圆相对中心的水平偏移
+let joystickKnobOffsetY = 0;          // 内层小圆相对中心的垂直偏移
+let joystickCurrentFade = 1.0;         // 实时透明度因子 (1.0 全显 ~ 0.0 全隐)
+
 // ================= 画布底层独立排版文字参数设置 =================
-// 1. 独立文段内容（可自由编写多段落，支持换行）
 const BG_CANVAS_TEXT = `李海杰 / 思花
 ----------------------------------------
 2018.09—2022.06 广州美术学院 视觉艺术学院 视觉传达
@@ -43,15 +51,13 @@ const BG_CANVAS_TEXT = `李海杰 / 思花
 2025.03—至今 思花 艺术博主 全网 100w+关注
 `;
 
-// 2. 独立文字样式与排布配置
 const BG_CANVAS_TEXT_FONT = 'monospace';   // 字体族
 const BG_CANVAS_TEXT_SIZE = 12;            // 字号大小 (px)
 const BG_CANVAS_TEXT_LINE_HEIGHT = 20;     // 行高 (px)
-const BG_CANVAS_TEXT_PARA_SPACING = 14;    // 段落间距 (遇到空行或换行时的追加间距, px)
+const BG_CANVAS_TEXT_PARA_SPACING = 14;    // 段落间距 (px)
 const BG_CANVAS_TEXT_COLOR_HEX = '#ffffff';// 独立文字颜色 (HEX)
 const BG_CANVAS_TEXT_OPACITY = 0.70;       // 独立文字不透明度 (0.0~1.0)
 
-// 3. 独立外边距位置控制 (px)
 const BG_CANVAS_MARGIN_TOP = 80;           // 顶边距
 const BG_CANVAS_MARGIN_LEFT = 60;          // 左边距
 const BG_CANVAS_MARGIN_RIGHT = 60;         // 右边距
@@ -92,12 +98,10 @@ let layerGrowProgress = [];           // 每层圆各自实时的生长进度 (0
 // ================= 圆心月相双圆参数设置 =================
 const CENTER_CIRCLES_RADIUS = 20;     // 圆心两圆的共同半径尺寸 (px)
 
-// 1. 底层基准月亮参数（月牙亮部颜色）
 const CENTER_BASE_CIRCLE_FILL = '#ffffff';     // 底圆亮部填充颜色 (HEX)
 const CENTER_BASE_CIRCLE_STROKE = '#63E6FF';   // 底圆轮廓描边颜色 (HEX)
 const CENTER_BASE_CIRCLE_STROKE_WEIGHT = 0;    // 底圆轮廓描边粗细
 
-// 2. 上层遮罩圆参数（阴影区显示颜色）
 const CENTER_TOP_CIRCLE_FILL = '#000000';      // 阴影遮罩颜色
 const TOP_CIRCLE_MOVE_SENSITIVITY = 0.45;      // 上层遮罩受拖动手势影响的位移灵敏度
 const TOP_CIRCLE_SPRING_DAMPING = 0.82;        // 上层圆松手回弹阻尼 (0.0~1.0)
@@ -118,7 +122,6 @@ const HIGHLIGHT_STROKE_WEIGHT = 2.5;  // 高光处圆弧的线条粗细
 const HIGHLIGHT_CHANCE = 0.85;        // 每层圆出现高光的概率 (0.0~1.0)
 let layerHighlightEnabled = [];       // 保存各层是否启用高光的状态
 
-// --- 每一层独立随机参数配置 ---
 const LAYER_SPAN_MIN = 20;            // 每层高光覆盖跨度最小值 (度数)
 const LAYER_SPAN_MAX = 65;            // 每层高光覆盖跨度最大值 (度数)
 let layerBaseSpansSide1 = [];         // 各层正向端基准覆盖跨度
@@ -126,7 +129,6 @@ let layerBaseSpansSide2 = [];         // 各层反向端基准覆盖跨度
 let layerEffectiveSpansSide1 = [];    // 摆动时动态计算的实时跨度
 let layerEffectiveSpansSide2 = [];
 
-// --- 每层独立同心圆随机来回旋转控制 ---
 const LAYER_SWING_AMP_MIN = 12.0;     // 各层来回摆动振幅下限 (度数)
 const LAYER_SWING_AMP_MAX = 35.0;     // 各层来回摆动振幅上限 (度数)
 const LAYER_SWING_SPEED_MIN = 0.04;   // 各层独立摆速下限 (弧度/帧)
@@ -140,13 +142,12 @@ let layerTargetAmps = [];             // 拖拽时每层分配的目标最大振
 let layerCurrentAmps = [];            // 每层平滑插值后的当前实际振幅
 let layerCurrentRotAngles = [];       // 每层当前最终自转角 (弧度)
 
-// 整体基准旋转偏角设置 (度数)
 const OVERALL_ROTATION_OFFSET_DEG = 18;
 const LAYER_ANGLE_OFFSET_MIN = -12;   // 静态偏差下限 (度数)
 const LAYER_ANGLE_OFFSET_MAX = 12;    // 静态偏差上限 (度数)
 let layerAngleOffsets = [];           // 存储每层的独立初始偏角
 
-// ================= 沿圆周多层回行文字设置 (专属圆环) =================
+// ================= 沿圆周多层回行文字设置 =================
 const PRESET_TEXT = `2018.09—2022.06 Guangzhou Academy of Fine Arts Visual Communication Design
 
 2022.07—Present Tencent · WeChat Pay Visual Designer
@@ -165,13 +166,11 @@ const TEXT_APPEAR_THRESHOLD = 0.15;   // 显现阈值 (0.0~1.0)
 const CHAR_GRID_WIDTH = 8;            // 每个文字格子的切向弧长尺寸 (px)
 const TEXT_SHOW_ON_BOTH_SIDES = true; // 两端对齐显示相同文本
 
-// --- 文字随机显现推进参数 ---
 const TEXT_REVEAL_SPEED = 0.0515;     // 手势位移时文字推进显现速度
 let textRevealProgress = 0;           // 文字显现进度 (0.0 ~ 1.0)
 let charRandomOrder = [];             // 存储字符槽位的随机显现优先级列表
 
-// --- 文字向圆心内缩偏移参数设置 ---
-const TEXT_INSET_MODE = 'absolute';   // 内移模式: 'absolute' (固定像素) 或 'step_ratio' (按圈层间距比例)
+const TEXT_INSET_MODE = 'absolute';   // 内移模式
 const TEXT_RADIAL_INSET = 8;          // 向圆心内缩距离 (px)
 
 // ================= 直线及随机条数晃动参数设置 =================
@@ -179,29 +178,27 @@ const TRIGGER_LINE_COUNT_MIN = 1;     // 每次触发直线数量下限
 const TRIGGER_LINE_COUNT_MAX = 3;     // 每次触发直线数量上限
 const LINE_ANGLE_MIN = 0;             // 直线基准角度下限 (度数)
 const LINE_ANGLE_MAX = 360;           // 直线基准角度上限 (度数)
-const LINE_STROKE_WEIGHT = 1.0;       // 直线粗细 (>0 显示实际直线，设为 0 则只留高光)
+const LINE_STROKE_WEIGHT = 1.0;       // 直线粗细
 const LINE_COLOR_HEX = '#ffffff';     // 直线颜色 (HEX 格式)
 
-// --- 每一条直线的独立摇晃动力学 ---
 const LINE_SWING_AMP_MAX = 8.0;       // 直线最大甩摆振幅 (度数)
 const LINE_SWING_SPEED_MIN = 0.06;    // 直线晃动速度下限
 const LINE_SWING_SPEED_MAX = 0.16;    // 直线晃动速度上限
 const LINE_SWING_EASING = 0.12;       // 起摆缓入速度
 const LINE_SWING_DAMPING = 0.15;      // 停止平滑衰减速度
 
-let activeLineCount = 1;              // 当前生效的随机直线数量 (1 ~ 4)
-let lineBaseAngles = [];              // 各条直线的初始随机角度 (度数)
+let activeLineCount = 1;              // 当前生效的随机直线数量
+let lineBaseAngles = [];              // 各条直线的初始随机角度
 let lineSwingSpeeds = [];             // 各直线的甩摆速度
 let lineSwingPhases = [];             // 各直线的相位累加器
 let lineCurrentAmps = [];             // 各直线当前平滑后的振幅
-let lineSwingOffsets = [];            // 输出给各直线的实时摇晃偏移角 (度数)
+let lineSwingOffsets = [];            // 输出给各直线的实时摇晃偏移角
 
 // ================= 手势显隐与过渡参数 =================
-const FADE_IN_SPEED = 0.20;           // 手势拖动时显现速度 (0.01~1.0)
-const FADE_OUT_SPEED = 0.12;          // 手势松开时淡出消失速度 (0.01~1.0)
-let gestureVisibility = 0;            // 实时显隐强度：0.0 (完全隐藏) ~ 1.0 (完全显示)
+const FADE_IN_SPEED = 0.20;           // 手势拖动时显现速度
+const FADE_OUT_SPEED = 0.12;          // 手势松开时淡出消失速度
+let gestureVisibility = 0;            // 实时显隐强度：0.0 (隐藏) ~ 1.0 (显示)
 
-// 旋转参数设置
 const ROTATE_SENSITIVITY = 0.006;     // 手势旋转灵敏度
 const SPRING_STIFFNESS = 0.03;        // 回弹刚度
 const SPRING_DAMPING = 0.72;          // 阻尼系数
@@ -247,7 +244,7 @@ function setup() {
   textLayer.textAlign(CENTER, CENTER);
   textLayer.textFont(TEXT_FONT_FAMILY);
 
-  // 2. 专属底层 2D 排版文字图层初始化并立即完成排版
+  // 2. 专属底层 2D 排版文字图层
   bgTextLayer = createGraphics(CANVAS_WIDTH, CANVAS_HEIGHT);
   renderCanvasBackgroundTypography(bgTextLayer);
 
@@ -277,17 +274,6 @@ function setup() {
 
 function draw() {
   let isMoving = isDragging && (mouseX !== pmouseX || mouseY !== pmouseY);
-
-  // 页面初始保持显示；第一次实际拖动后平滑消失。
-  let guideTargetVisibility = hasUserDragged ? 0 : 1;
-  guideSliderVisibility = lerp(
-    guideSliderVisibility,
-    guideTargetVisibility,
-    GUIDE_SLIDER_FADE_SPEED
-  );
-  if (guideSliderVisibility < 0.001) {
-    guideSliderVisibility = 0;
-  }
 
   if (!isDragging) {
     currentZoomScale = lerp(currentZoomScale, BASE_ZOOM_SCALE, ZOOM_OUT_SPRING_SPEED);
@@ -322,6 +308,11 @@ function draw() {
     topCircleVelY = (topCircleVelY + springForceY) * TOP_CIRCLE_SPRING_DAMPING;
     topCirclePosX += topCircleVelX;
     topCirclePosY += topCircleVelY;
+
+    // 松手释放：摇杆立刻平滑恢复显现，小圆弹性归零回到中心
+    joystickKnobOffsetX = lerp(joystickKnobOffsetX, 0, 0.15);
+    joystickKnobOffsetY = lerp(joystickKnobOffsetY, 0, 0.15);
+    joystickCurrentFade = lerp(joystickCurrentFade, 1.0, JOYSTICK_FADE_IN_SPEED);
   } else {
     currentZoomScale = lerp(currentZoomScale, SLIDE_ZOOM_TARGET_SCALE, ZOOM_IN_SPEED);
     gestureVisibility = lerp(gestureVisibility, 1.0, FADE_IN_SPEED);
@@ -376,6 +367,9 @@ function draw() {
       layerEffectiveSpansSide1[i] = constrain(layerBaseSpansSide1[i] + spanModulation, LAYER_SPAN_MIN, LAYER_SPAN_MAX);
       layerEffectiveSpansSide2[i] = constrain(layerBaseSpansSide2[i] - spanModulation, LAYER_SPAN_MIN, LAYER_SPAN_MAX);
     }
+
+    // 拖动开始：摇杆立即平滑渐隐消失
+    joystickCurrentFade = lerp(joystickCurrentFade, 0.0, JOYSTICK_FADE_OUT_SPEED);
   }
 
   if (gestureVisibility < 0.001) {
@@ -389,7 +383,7 @@ function draw() {
   // ---------------- 0. 最底层：动态线性渐变背景 (Z = -500) ----------------
   renderDynamicGradientBackground(gestureVisibility, currentBgAngle);
 
-  // ---------------- 0.5. 底层独立 2D 排版文字层 (Z = -400，常驻且静态) ----------------
+  // ---------------- 0.5. 底层独立 2D 排版文字层 (Z = -400) ----------------
   push();
   translate(0, 0, -400);
   noStroke();
@@ -627,72 +621,42 @@ function draw() {
     pop();
   }
 
-  // ---------------- 5. 最上层：右下角滑杆交互引导 ----------------
-  renderSliderGuide();
+  // ---------------- 5. 顶层 2D 绘制：可拖拽游戏摇杆 (拖动立即平滑淡出，松开恢复) ----------------
+  renderBottomRightJoystick(joystickCurrentFade);
 }
 
 /**
- * 在画布右下角绘制自动左右往返的滑杆，引导用户进行拖动。
- * 使用画布坐标绘制，不跟随作品的三维旋转与缩放。
+ * 绘制右下角双圆游戏操作杆组件：支持小圆位移与拖拽平滑显隐过渡
  */
-function renderSliderGuide() {
-  if (!GUIDE_SLIDER_ENABLED || guideSliderVisibility <= 0.001) return;
-
-  let rightEdge = width / 2 - GUIDE_SLIDER_RIGHT_MARGIN;
-  let leftEdge = rightEdge - GUIDE_SLIDER_WIDTH;
-  let centerGuideX = (leftEdge + rightEdge) / 2;
-  let centerGuideY = height / 2 - GUIDE_SLIDER_BOTTOM_MARGIN;
-
-  let minKnobX = leftEdge + GUIDE_SLIDER_TRAVEL_PADDING + GUIDE_SLIDER_KNOB_SIZE / 2;
-  let maxKnobX = rightEdge - GUIDE_SLIDER_TRAVEL_PADDING - GUIDE_SLIDER_KNOB_SIZE / 2;
-
-  // 余弦缓动让滑块在两端自然减速，再反向移动。
-  let travelProgress = 0.5 - 0.5 * cos(frameCount * GUIDE_SLIDER_ANIMATION_SPEED);
-  let knobX = lerp(minKnobX, maxKnobX, travelProgress);
-  let pulse = map(
-    sin(frameCount * GUIDE_SLIDER_ANIMATION_SPEED * 2),
-    -1,
-    1,
-    0.72,
-    1.0
-  );
-
-  let guideColor = color(GUIDE_SLIDER_COLOR_HEX);
-  let r = red(guideColor);
-  let g = green(guideColor);
-  let b = blue(guideColor);
+function renderBottomRightJoystick(fadeAlphaFactor) {
+  let effectiveAlpha = fadeAlphaFactor * JOYSTICK_BASE_OPACITY;
+  if (effectiveAlpha <= 0.005) return;
 
   push();
-  translate(0, 0, 500);
-  rectMode(CENTER);
-  noStroke();
+  translate(-width / 2, -height / 2, 100);
 
-  // 轨道
-  fill(r, g, b, 255 * GUIDE_SLIDER_TRACK_OPACITY * guideSliderVisibility);
-  rect(
-    centerGuideX,
-    centerGuideY,
-    GUIDE_SLIDER_WIDTH,
-    GUIDE_SLIDER_TRACK_HEIGHT,
-    GUIDE_SLIDER_TRACK_HEIGHT / 2
-  );
+  let cx = width - JOYSTICK_MARGIN_RIGHT - JOYSTICK_BASE_RADIUS;
+  let cy = height - JOYSTICK_MARGIN_BOTTOM - JOYSTICK_BASE_RADIUS;
 
-  // 滑块外围呼吸光
-  fill(r, g, b, 34 * pulse * guideSliderVisibility);
-  circle(
-    knobX,
-    centerGuideY,
-    GUIDE_SLIDER_KNOB_SIZE * GUIDE_SLIDER_HALO_SCALE
-  );
+  // 1. 绘制外层大圆底盘
+  let cBaseStroke = color(JOYSTICK_BASE_STROKE);
+  let cBaseFill = color(JOYSTICK_BASE_FILL);
+  stroke(red(cBaseStroke), green(cBaseStroke), blue(cBaseStroke), effectiveAlpha * 255);
+  strokeWeight(JOYSTICK_BASE_STROKE_WEIGHT);
+  fill(red(cBaseFill), green(cBaseFill), blue(cBaseFill), effectiveAlpha * JOYSTICK_BASE_FILL_ALPHA * 255);
+  circle(cx, cy, JOYSTICK_BASE_RADIUS * 2);
 
-  // 滑块
-  fill(
-    r,
-    g,
-    b,
-    255 * GUIDE_SLIDER_KNOB_OPACITY * pulse * guideSliderVisibility
-  );
-  circle(knobX, centerGuideY, GUIDE_SLIDER_KNOB_SIZE);
+  // 2. 绘制内层小圆摇杆（中心 + 实时拖拽偏移量）
+  let knobX = cx + joystickKnobOffsetX;
+  let knobY = cy + joystickKnobOffsetY;
+
+  let cKnobStroke = color(JOYSTICK_KNOB_STROKE);
+  let cKnobFill = color(JOYSTICK_KNOB_FILL);
+  stroke(red(cKnobStroke), green(cKnobStroke), blue(cKnobStroke), effectiveAlpha * 255);
+  strokeWeight(JOYSTICK_KNOB_STROKE_WEIGHT);
+  fill(red(cKnobFill), green(cKnobFill), blue(cKnobFill), effectiveAlpha * JOYSTICK_KNOB_FILL_ALPHA * 255);
+  circle(knobX, knobY, JOYSTICK_KNOB_RADIUS * 2);
+
   pop();
 }
 
@@ -745,19 +709,16 @@ function renderCanvasBackgroundTypography(pg) {
   let startX = BG_CANVAS_MARGIN_LEFT;
   let currentY = BG_CANVAS_MARGIN_TOP;
 
-  // 1. 保留手动分段：按原文字换行拆分
   let paragraphs = BG_CANVAS_TEXT.split(/\r?\n/);
 
   for (let p = 0; p < paragraphs.length; p++) {
     let rawPara = paragraphs[p];
 
-    // 处理连贯空行或段落之间的垂直空白
     if (rawPara.trim() === '') {
       currentY += BG_CANVAS_TEXT_PARA_SPACING;
       continue;
     }
 
-    // 2. 自动换行：按单词/空格累加测量，超宽自动换行
     let words = rawPara.split(' ');
     let currentLine = '';
 
@@ -991,23 +952,44 @@ function normalizeAngle(ang) {
   return ang;
 }
 
-function mouseDragged() {
+// 检查是否在右下角摇杆判定范围内
+function isMouseInsideJoystick() {
+  let jCenterX = width - JOYSTICK_MARGIN_RIGHT - JOYSTICK_BASE_RADIUS;
+  let jCenterY = height - JOYSTICK_MARGIN_BOTTOM - JOYSTICK_BASE_RADIUS;
+  let distToJ = dist(mouseX, mouseY, jCenterX, jCenterY);
+  return distToJ <= (JOYSTICK_BASE_RADIUS + 12);
+}
+
+function mousePressed() {
   if (!isDragging) {
     generateCharRandomOrder();
     refreshLayerRandomProperties();
     refreshRandomLines();
     refreshCircleGrowthProperties();
   }
+
   isDragging = true;
+  isJoystickDragging = isMouseInsideJoystick();
+
+  if (isJoystickDragging) {
+    updateJoystickKnobPosition();
+  }
+}
+
+function mouseDragged() {
+  if (!isDragging) {
+    mousePressed();
+  }
 
   let dx = mouseX - pmouseX;
   let dy = mouseY - pmouseY;
 
-  // 只有发生真实位移才算完成引导，单纯轻触不会让滑杆消失。
-  if (Math.abs(dx) + Math.abs(dy) > 0.5) {
-    hasUserDragged = true;
+  // 1. 如果是在拖拽摇杆小圆，更新小圆位置与限制半径
+  if (isJoystickDragging) {
+    updateJoystickKnobPosition();
   }
 
+  // 2. 传递手势动量至全局 3D 旋转与月相遮罩
   velX += -dy * ROTATE_SENSITIVITY;
   velY += dx * ROTATE_SENSITIVITY;
 
@@ -1026,23 +1008,39 @@ function mouseDragged() {
   return false;
 }
 
+function updateJoystickKnobPosition() {
+  let jCenterX = width - JOYSTICK_MARGIN_RIGHT - JOYSTICK_BASE_RADIUS;
+  let jCenterY = height - JOYSTICK_MARGIN_BOTTOM - JOYSTICK_BASE_RADIUS;
+
+  let rawOffX = mouseX - jCenterX;
+  let rawOffY = mouseY - jCenterY;
+
+  // 最大活动半径：保证小圆不超出大圆边缘
+  let maxOffset = JOYSTICK_BASE_RADIUS - JOYSTICK_KNOB_RADIUS;
+  let currentDist = Math.sqrt(rawOffX * rawOffX + rawOffY * rawOffY);
+
+  if (currentDist > maxOffset) {
+    let s = maxOffset / currentDist;
+    joystickKnobOffsetX = rawOffX * s;
+    joystickKnobOffsetY = rawOffY * s;
+  } else {
+    joystickKnobOffsetX = rawOffX;
+    joystickKnobOffsetY = rawOffY;
+  }
+}
+
 function mouseReleased() {
   isDragging = false;
+  isJoystickDragging = false;
+}
+
+function touchStarted() {
+  mousePressed();
+  return false;
 }
 
 function touchMoved() {
   mouseDragged();
-  return false;
-}
-
-function touchStarted() {
-  if (!isDragging) {
-    generateCharRandomOrder();
-    refreshLayerRandomProperties();
-    refreshRandomLines();
-    refreshCircleGrowthProperties();
-  }
-  isDragging = true;
   return false;
 }
 
