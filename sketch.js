@@ -45,6 +45,11 @@ const BG_CANVAS_TEXT = `李海杰 / 思花
 2018.09—2022.06 广州美术学院 视觉艺术学院 视觉传达
 2022.07—至今 腾讯-微信支付 视觉设计
 2025.03—至今 思花 艺术博主 全网 100w+关注
+
+个人主页: xhslink.cn/m/4etbxsNq9T7
+Phone / WeChat: 19129214045
+Email: 1332785964@qq.com
+
 `;
 
 const BG_CANVAS_TEXT_FONT = 'monospace';   // 字体族
@@ -54,8 +59,8 @@ const BG_CANVAS_TEXT_PARA_SPACING = 14;    // 段落间距 (px)
 const BG_CANVAS_TEXT_COLOR_HEX = '#ffffff';// 独立文字颜色 (HEX)
 const BG_CANVAS_TEXT_OPACITY = 0.70;       // 独立文字不透明度 (0.0~1.0)
 
-const BG_CANVAS_MARGIN_TOP = 80;           // 顶边距
-const BG_CANVAS_MARGIN_LEFT = 60;          // 左边距
+const BG_CANVAS_MARGIN_TOP = 40;           // 顶边距
+const BG_CANVAS_MARGIN_LEFT = 40;          // 左边距
 const BG_CANVAS_MARGIN_RIGHT = 60;         // 右边距
 
 // 圆心基准位置
