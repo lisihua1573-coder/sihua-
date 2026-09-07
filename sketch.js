@@ -41,7 +41,7 @@ let joystickCurrentFade = 1.0;         // 实时透明度因子 (1.0 全显 ~ 0.
 
 // ================= 画布底层独立排版文字参数设置 =================
 const BG_CANVAS_TEXT = `李海杰 / 思花
-----------------------------------------
+ 
 2018.09—2022.06 广州美术学院 视觉艺术学院 视觉传达
 2022.07—至今 腾讯-微信支付 视觉设计
 2025.03—至今 思花 艺术博主 全网 100w+关注
@@ -49,11 +49,10 @@ const BG_CANVAS_TEXT = `李海杰 / 思花
 个人主页: xhslink.cn/m/4etbxsNq9T7
 Phone / WeChat: 19129214045
 Email: 1332785964@qq.com
-
 `;
 
 const BG_CANVAS_TEXT_FONT = 'monospace';   // 字体族
-const BG_CANVAS_TEXT_SIZE = 12;            // 字号大小 (px)
+const BG_CANVAS_TEXT_SIZE = 10;            // 字号大小 (px)
 const BG_CANVAS_TEXT_LINE_HEIGHT = 20;     // 行高 (px)
 const BG_CANVAS_TEXT_PARA_SPACING = 14;    // 段落间距 (px)
 const BG_CANVAS_TEXT_COLOR_HEX = '#ffffff';// 独立文字颜色 (HEX)
@@ -70,7 +69,7 @@ let centerY = CANVAS_HEIGHT / 2;
 // ================= 滑动缩放与松手恢复参数设置 =================
 const BASE_ZOOM_SCALE = 0.40;          // 静止/恢复时的基准缩放倍率 (1.0 = 原尺寸)
 const SLIDE_ZOOM_TARGET_SCALE = 1.6;  // 滑动拖拽时想要达到的目标缩放倍率 (>1.0 放大, <1.0 缩小)
-const ZOOM_IN_SPEED = 0.03;           // 滑动时放大插值速度 (0.01~1.0)
+const ZOOM_IN_SPEED = 0.08;           // 滑动时放大插值速度 (0.01~1.0)
 const ZOOM_OUT_SPRING_SPEED = 0.09;   // 松手释放后回弹恢复至基准原倍率的速度 (0.01~1.0)
 
 let currentZoomScale = BASE_ZOOM_SCALE; // 实时平滑缩放倍率
@@ -104,7 +103,7 @@ const CENTER_BASE_CIRCLE_STROKE = '#63E6FF';   // 底圆轮廓描边颜色 (HEX)
 const CENTER_BASE_CIRCLE_STROKE_WEIGHT = 0;    // 底圆轮廓描边粗细
 
 const CENTER_TOP_CIRCLE_FILL = '#000000';      // 阴影遮罩颜色
-const TOP_CIRCLE_MOVE_SENSITIVITY = 0.145;      // 上层遮罩受拖动手势影响的位移灵敏度
+const TOP_CIRCLE_MOVE_SENSITIVITY = 0.45;      // 上层遮罩受拖动手势影响的位移灵敏度
 const TOP_CIRCLE_SPRING_DAMPING = 0.82;        // 上层圆松手回弹阻尼 (0.0~1.0)
 const TOP_CIRCLE_SPRING_STIFFNESS = 0.12;      // 上层圆回弹刚度
 const TOP_CIRCLE_MAX_OFFSET = 56;              // 上层遮罩最大位移半径限制 (px)
@@ -174,7 +173,7 @@ let charRandomOrder = [];             // 存储字符槽位的随机显现优先
 const TEXT_INSET_MODE = 'absolute';   // 内移模式
 const TEXT_RADIAL_INSET = 8;          // 向圆心内缩距离 (px)
 
-// ================= 直线及随机条数晃动参数设置 =================
+// ================= 直线及顺时针独立随机旋转动力学设置 =================
 const TRIGGER_LINE_COUNT_MIN = 1;     // 每次触发直线数量下限
 const TRIGGER_LINE_COUNT_MAX = 3;     // 每次触发直线数量上限
 const LINE_ANGLE_MIN = 0;             // 直线基准角度下限 (度数)
@@ -182,18 +181,17 @@ const LINE_ANGLE_MAX = 360;           // 直线基准角度上限 (度数)
 const LINE_STROKE_WEIGHT = 1.0;       // 直线粗细
 const LINE_COLOR_HEX = '#ffffff';     // 直线颜色 (HEX 格式)
 
-const LINE_SWING_AMP_MAX = 8.0;       // 直线最大甩摆振幅 (度数)
-const LINE_SWING_SPEED_MIN = 0.06;    // 直线晃动速度下限
-const LINE_SWING_SPEED_MAX = 0.16;    // 直线晃动速度上限
-const LINE_SWING_EASING = 0.12;       // 起摆缓入速度
-const LINE_SWING_DAMPING = 0.15;      // 停止平滑衰减速度
+// --- 顺时针持续旋转动力学参数 ---
+const LINE_ROT_SPEED_MIN = 0.40;      // 直线顺时针旋转速度下限 (度/帧)
+const LINE_ROT_SPEED_MAX = 1.60;      // 直线顺时针旋转速度上限 (度/帧)
+const LINE_ROT_EASING = 0.10;         // 拖拽激活时的加速平滑系数
+const LINE_ROT_DAMPING = 0.06;        // 松手后的减速刹停平滑系数
 
 let activeLineCount = 1;              // 当前生效的随机直线数量
-let lineBaseAngles = [];              // 各条直线的初始随机角度
-let lineSwingSpeeds = [];             // 各直线的甩摆速度
-let lineSwingPhases = [];             // 各直线的相位累加器
-let lineCurrentAmps = [];             // 各直线当前平滑后的振幅
-let lineSwingOffsets = [];            // 输出给各直线的实时摇晃偏移角
+let lineBaseAngles = [];              // 各条直线的初始随机角度 (度数)
+let lineTargetSpeeds = [];            // 拖拽时各直线的顺时针目标旋转速度 (度/帧)
+let lineCurrentSpeeds = [];           // 各直线当前的实际旋转速度 (度/帧)
+let lineRotationAngles = [];          // 各直线实时累加的顺时针自转角度 (度数)
 
 // ================= 手势显隐与过渡参数 =================
 const FADE_IN_SPEED = 0.20;           // 手势拖动时显现速度
@@ -282,8 +280,10 @@ function draw() {
       layerCurrentRotAngles[i] = lerp(layerCurrentRotAngles[i], 0, 0.08);
     }
 
+    // 松手时直线的旋转速度平滑减速刹停
     for (let k = 0; k < activeLineCount; k++) {
-      lineCurrentAmps[k] = lerp(lineCurrentAmps[k], 0, LINE_SWING_DAMPING);
+      lineCurrentSpeeds[k] = lerp(lineCurrentSpeeds[k], 0, LINE_ROT_DAMPING);
+      lineRotationAngles[k] += lineCurrentSpeeds[k];
     }
 
     let springForceX = -topCirclePosX * TOP_CIRCLE_SPRING_STIFFNESS;
@@ -293,7 +293,7 @@ function draw() {
     topCirclePosX += topCircleVelX;
     topCirclePosY += topCircleVelY;
 
-    // 松手释放：摇杆立刻平滑恢复显现，小圆弹性归零回到中心
+    // 摇杆松手释放后恢复显现，小圆弹性归零
     joystickKnobOffsetX = lerp(joystickKnobOffsetX, 0, 0.15);
     joystickKnobOffsetY = lerp(joystickKnobOffsetY, 0, 0.15);
     joystickCurrentFade = lerp(joystickCurrentFade, 1.0, JOYSTICK_FADE_IN_SPEED);
@@ -314,14 +314,10 @@ function draw() {
       }
     }
 
+    // 拖拽激活中：只要按住，直线就持续以各自独立的随机速度顺时针旋转
     for (let k = 0; k < activeLineCount; k++) {
-      if (isMoving) {
-        lineSwingPhases[k] += lineSwingSpeeds[k];
-        lineCurrentAmps[k] = lerp(lineCurrentAmps[k], LINE_SWING_AMP_MAX, LINE_SWING_EASING);
-      } else {
-        lineCurrentAmps[k] = lerp(lineCurrentAmps[k], 0, 0.25);
-      }
-      lineSwingOffsets[k] = sin(lineSwingPhases[k]) * lineCurrentAmps[k];
+      lineCurrentSpeeds[k] = lerp(lineCurrentSpeeds[k], lineTargetSpeeds[k], LINE_ROT_EASING);
+      lineRotationAngles[k] += lineCurrentSpeeds[k];
     }
 
     topCircleVelX *= 0.65;
@@ -352,7 +348,7 @@ function draw() {
       layerEffectiveSpansSide2[i] = constrain(layerBaseSpansSide2[i] - spanModulation, LAYER_SPAN_MIN, LAYER_SPAN_MAX);
     }
 
-    // 拖动开始：摇杆立即平滑渐隐消失
+    // 拖动时摇杆平滑淡出
     joystickCurrentFade = lerp(joystickCurrentFade, 0.0, JOYSTICK_FADE_OUT_SPEED);
   }
 
@@ -376,9 +372,10 @@ function draw() {
   plane(CANVAS_WIDTH, CANVAS_HEIGHT);
   pop();
 
+  // 计算每条顺时针旋转直线的实时角度与空间投影
   let linesData = [];
   for (let k = 0; k < activeLineCount; k++) {
-    let effectiveDeg = lineBaseAngles[k] + OVERALL_ROTATION_OFFSET_DEG + lineSwingOffsets[k];
+    let effectiveDeg = lineBaseAngles[k] + OVERALL_ROTATION_OFFSET_DEG + lineRotationAngles[k];
     let rad = radians(effectiveDeg);
     let isect = getIntersectionData(rad, MAX_RADIUS, rotX, rotY, rotZ);
     linesData.push({
@@ -582,7 +579,7 @@ function draw() {
 
   pop();
 
-  // ---------------- 4. 绘制多条随机导引直线 ----------------
+  // ---------------- 4. 绘制多条顺时针旋转导引直线 ----------------
   if (gestureVisibility > 0 && LINE_STROKE_WEIGHT > 0) {
     push();
     translate(centerX - width / 2, centerY - height / 2, 0);
@@ -605,12 +602,12 @@ function draw() {
     pop();
   }
 
-  // ---------------- 5. 顶层 2D 绘制：可拖拽游戏摇杆 (拖动立即平滑淡出，松开恢复) ----------------
+  // ---------------- 5. 顶层 2D 绘制：可拖拽游戏摇杆 ----------------
   renderBottomRightJoystick(joystickCurrentFade);
 }
 
 /**
- * 绘制右下角双圆游戏操作杆组件：支持小圆位移与拖拽平滑显隐过渡
+ * 绘制右下角双圆游戏操作杆组件
  */
 function renderBottomRightJoystick(fadeAlphaFactor) {
   let effectiveAlpha = fadeAlphaFactor * JOYSTICK_BASE_OPACITY;
@@ -630,7 +627,7 @@ function renderBottomRightJoystick(fadeAlphaFactor) {
   fill(red(cBaseFill), green(cBaseFill), blue(cBaseFill), effectiveAlpha * JOYSTICK_BASE_FILL_ALPHA * 255);
   circle(cx, cy, JOYSTICK_BASE_RADIUS * 2);
 
-  // 2. 绘制内层小圆摇杆（中心 + 实时拖拽偏移量）
+  // 2. 绘制内层小圆摇杆
   let knobX = cx + joystickKnobOffsetX;
   let knobY = cy + joystickKnobOffsetY;
 
@@ -861,18 +858,16 @@ function refreshLayerRandomProperties() {
 function refreshRandomLines() {
   activeLineCount = floor(random(TRIGGER_LINE_COUNT_MIN, TRIGGER_LINE_COUNT_MAX + 1));
   lineBaseAngles = [];
-  lineSwingSpeeds = [];
-  lineSwingPhases = [];
-  lineCurrentAmps = [];
-  lineSwingOffsets = [];
+  lineTargetSpeeds = [];
+  lineCurrentSpeeds = [];
+  lineRotationAngles = [];
 
   for (let k = 0; k < activeLineCount; k++) {
     let spreadAngle = random(LINE_ANGLE_MIN, LINE_ANGLE_MAX) + (k * 22);
     lineBaseAngles.push(spreadAngle);
-    lineSwingSpeeds.push(random(LINE_SWING_SPEED_MIN, LINE_SWING_SPEED_MAX));
-    lineSwingPhases.push(random(TWO_PI));
-    lineCurrentAmps.push(0);
-    lineSwingOffsets.push(0);
+    lineTargetSpeeds.push(random(LINE_ROT_SPEED_MIN, LINE_ROT_SPEED_MAX));
+    lineCurrentSpeeds.push(0);
+    lineRotationAngles.push(0);
   }
 }
 
@@ -936,7 +931,6 @@ function normalizeAngle(ang) {
   return ang;
 }
 
-// 检查是否在右下角摇杆判定范围内
 function isMouseInsideJoystick() {
   let jCenterX = width - JOYSTICK_MARGIN_RIGHT - JOYSTICK_BASE_RADIUS;
   let jCenterY = height - JOYSTICK_MARGIN_BOTTOM - JOYSTICK_BASE_RADIUS;
@@ -968,12 +962,10 @@ function mouseDragged() {
   let dx = mouseX - pmouseX;
   let dy = mouseY - pmouseY;
 
-  // 1. 如果是在拖拽摇杆小圆，更新小圆位置与限制半径
   if (isJoystickDragging) {
     updateJoystickKnobPosition();
   }
 
-  // 2. 传递手势动量至全局 3D 旋转与月相遮罩
   velX += -dy * ROTATE_SENSITIVITY;
   velY += dx * ROTATE_SENSITIVITY;
 
@@ -999,7 +991,6 @@ function updateJoystickKnobPosition() {
   let rawOffX = mouseX - jCenterX;
   let rawOffY = mouseY - jCenterY;
 
-  // 最大活动半径：保证小圆不超出大圆边缘
   let maxOffset = JOYSTICK_BASE_RADIUS - JOYSTICK_KNOB_RADIUS;
   let currentDist = Math.sqrt(rawOffX * rawOffX + rawOffY * rawOffY);
 
