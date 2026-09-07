@@ -3,10 +3,6 @@
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 1060;
 
-// ================= GitHub Pages / 手机端显示设置 =================
-// 保持内部坐标仍为 800 × 1060，仅通过页面 CSS 等比缩放，不改变原有构图参数。
-const MAX_PIXEL_DENSITY = 2;          // 移动端最大像素密度，兼顾清晰度与 WEBGL 性能
-
 // ----- 背景色与渐变参数设置 -----
 const BG_COLOR_IDLE = '#000000';       // 静止初始背景色 (HEX)
 const BG_GRAD_COLOR_A = '#000000';     // 拖拽渐变端点色 A (HEX)
@@ -214,24 +210,7 @@ let bgTextLayer;                       // 专属底层独立排版文字图层
 // ===============================================
 
 function setup() {
-  pixelDensity(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_DENSITY));
-
-  const canvasRenderer = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT, WEBGL);
-
-  // GitHub Pages 中挂载到 #app；在 p5.js 编辑器中也仍可直接运行。
-  const appContainer = document.getElementById('app');
-  if (appContainer) {
-    canvasRenderer.parent(appContainer);
-  }
-
-  canvasRenderer.elt.setAttribute('role', 'img');
-  canvasRenderer.elt.setAttribute('aria-label', '思花 AI 与编程艺术交互作品');
-
-  // 防止手机长按画布弹出系统菜单，保证拖动交互连续。
-  canvasRenderer.elt.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-  });
-
+  createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT, WEBGL);
   ortho(-width / 2, width / 2, -height / 2, height / 2, 0, 4000);
   noFill();
   noCursor();
