@@ -70,7 +70,7 @@ let centerY = CANVAS_HEIGHT / 2;
 // ================= 滑动缩放与松手恢复参数设置 =================
 const BASE_ZOOM_SCALE = 0.40;          // 静止/恢复时的基准缩放倍率 (1.0 = 原尺寸)
 const SLIDE_ZOOM_TARGET_SCALE = 1.6;  // 滑动拖拽时想要达到的目标缩放倍率 (>1.0 放大, <1.0 缩小)
-const ZOOM_IN_SPEED = 0.08;           // 滑动时放大插值速度 (0.01~1.0)
+const ZOOM_IN_SPEED = 0.03;           // 滑动时放大插值速度 (0.01~1.0)
 const ZOOM_OUT_SPRING_SPEED = 0.09;   // 松手释放后回弹恢复至基准原倍率的速度 (0.01~1.0)
 
 let currentZoomScale = BASE_ZOOM_SCALE; // 实时平滑缩放倍率
@@ -104,7 +104,7 @@ const CENTER_BASE_CIRCLE_STROKE = '#63E6FF';   // 底圆轮廓描边颜色 (HEX)
 const CENTER_BASE_CIRCLE_STROKE_WEIGHT = 0;    // 底圆轮廓描边粗细
 
 const CENTER_TOP_CIRCLE_FILL = '#000000';      // 阴影遮罩颜色
-const TOP_CIRCLE_MOVE_SENSITIVITY = 0.45;      // 上层遮罩受拖动手势影响的位移灵敏度
+const TOP_CIRCLE_MOVE_SENSITIVITY = 0.145;      // 上层遮罩受拖动手势影响的位移灵敏度
 const TOP_CIRCLE_SPRING_DAMPING = 0.82;        // 上层圆松手回弹阻尼 (0.0~1.0)
 const TOP_CIRCLE_SPRING_STIFFNESS = 0.12;      // 上层圆回弹刚度
 const TOP_CIRCLE_MAX_OFFSET = 56;              // 上层遮罩最大位移半径限制 (px)
